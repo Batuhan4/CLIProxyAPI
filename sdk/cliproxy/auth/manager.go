@@ -295,6 +295,10 @@ func (m *Manager) executeWithProvider(ctx context.Context, provider string, req 
 	if provider == "" {
 		return cliproxyexecutor.Response{}, &Error{Code: "provider_not_found", Message: "provider identifier is empty"}
 	}
+	// Advance round-robin cursor once per executeWithProvider call, after trying all auths
+	if rrs, ok := m.selector.(*RoundRobinSelector); ok && rrs != nil {
+		defer rrs.Advance(provider, req.Model)
+	}
 	tried := make(map[string]struct{})
 	var lastErr error
 	for {
@@ -343,6 +347,10 @@ func (m *Manager) executeCountWithProvider(ctx context.Context, provider string,
 	if provider == "" {
 		return cliproxyexecutor.Response{}, &Error{Code: "provider_not_found", Message: "provider identifier is empty"}
 	}
+	// Advance round-robin cursor once per executeCountWithProvider call, after trying all auths
+	if rrs, ok := m.selector.(*RoundRobinSelector); ok && rrs != nil {
+		defer rrs.Advance(provider, req.Model)
+	}
 	tried := make(map[string]struct{})
 	var lastErr error
 	for {
@@ -390,6 +398,10 @@ func (m *Manager) executeCountWithProvider(ctx context.Context, provider string,
 func (m *Manager) executeStreamWithProvider(ctx context.Context, provider string, req cliproxyexecutor.Request, opts cliproxyexecutor.Options) (<-chan cliproxyexecutor.StreamChunk, error) {
 	if provider == "" {
 		return nil, &Error{Code: "provider_not_found", Message: "provider identifier is empty"}
+	}
+	// Advance round-robin cursor once per executeStreamWithProvider call, after trying all auths
+	if rrs, ok := m.selector.(*RoundRobinSelector); ok && rrs != nil {
+		defer rrs.Advance(provider, req.Model)
 	}
 	tried := make(map[string]struct{})
 	var lastErr error

@@ -145,13 +145,30 @@ func (s *RoundRobinSelector) Pick(ctx context.Context, provider, model string, o
 	index := s.cursors[key]
 
 	if index >= 2_147_483_640 {
+		s.cursors[key] = 0
 		index = 0
 	}
-
-	s.cursors[key] = index + 1
 	s.mu.Unlock()
 	// log.Debugf("available: %d, index: %d, key: %d", len(available), index, index%len(available))
 	return available[index%len(available)], nil
+}
+
+// Advance moves the cursor forward for the given provider and model combination.
+// This should be called once per request, after all retry attempts are complete.
+func (s *RoundRobinSelector) Advance(provider, model string) {
+	if s == nil {
+		return
+	}
+	key := provider + ":" + model
+	s.mu.Lock()
+	if s.cursors == nil {
+		s.cursors = make(map[string]int)
+	}
+	s.cursors[key] = s.cursors[key] + 1
+	if s.cursors[key] >= 2_147_483_640 {
+		s.cursors[key] = 0
+	}
+	s.mu.Unlock()
 }
 
 func isAuthBlockedForModel(auth *Auth, model string, now time.Time) (bool, blockReason, time.Time) {
