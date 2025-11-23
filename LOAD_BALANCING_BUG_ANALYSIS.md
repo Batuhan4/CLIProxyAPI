@@ -1,5 +1,17 @@
 # Load Balancing Bug Analysis and Fix Guide
 
+## Quick Summary
+
+**Problem:** Round-robin load balancing not working - same account used repeatedly instead of rotating.
+
+**Root Cause:** The `RoundRobinSelector.Pick()` method incremented its cursor on every call, but was called multiple times per request during auth retries.
+
+**Solution:** Separated cursor reading (in `Pick()`) from cursor advancement (new `Advance()` method called once per request).
+
+**Status:** ✅ FIXED - Tests pass, builds successfully, no security issues.
+
+---
+
 ## Problem Statement
 
 The round-robin load balancing for Gemini CLI, Codex, and Gemini API accounts is not working correctly. Users experience failures due to the same account being used repeatedly instead of proper round-robin distribution across multiple accounts.
@@ -180,7 +192,21 @@ Apply the same pattern to `executeCountWithProvider()` and `executeStreamWithPro
 
 ## Testing the Fix
 
-After implementing the fix, test with multiple accounts:
+After implementing the fix, the round-robin behavior is verified with comprehensive tests in `sdk/cliproxy/auth/selector_test.go`.
+
+### Test Results
+```
+=== RUN   TestRoundRobinSelector_AdvanceOnlyOnce
+--- PASS: TestRoundRobinSelector_AdvanceOnlyOnce (0.00s)
+=== RUN   TestRoundRobinSelector_PerProviderModel
+--- PASS: TestRoundRobinSelector_PerProviderModel (0.00s)
+PASS
+ok      github.com/router-for-me/CLIProxyAPI/v6/sdk/cliproxy/auth    0.003s
+```
+
+### Manual Testing
+
+To manually verify with multiple accounts:
 
 1. Set up 3+ accounts for the same provider (e.g., gemini-cli)
 2. Send multiple sequential requests
