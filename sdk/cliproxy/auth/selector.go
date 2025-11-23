@@ -20,6 +20,10 @@ type RoundRobinSelector struct {
 	cursors map[string]int
 }
 
+const (
+	maxCursorValue = 2_147_483_640 // Reset cursor before overflow to prevent integer overflow issues
+)
+
 type blockReason int
 
 const (
@@ -144,7 +148,7 @@ func (s *RoundRobinSelector) Pick(ctx context.Context, provider, model string, o
 	s.mu.Lock()
 	index := s.cursors[key]
 
-	if index >= 2_147_483_640 {
+	if index >= maxCursorValue {
 		s.cursors[key] = 0
 		index = 0
 	}
@@ -165,7 +169,7 @@ func (s *RoundRobinSelector) Advance(provider, model string) {
 		s.cursors = make(map[string]int)
 	}
 	s.cursors[key] = s.cursors[key] + 1
-	if s.cursors[key] >= 2_147_483_640 {
+	if s.cursors[key] >= maxCursorValue {
 		s.cursors[key] = 0
 	}
 	s.mu.Unlock()

@@ -33,7 +33,7 @@ func TestRoundRobinSelector_AdvanceOnlyOnce(t *testing.T) {
 		t.Errorf("Request 1, attempt 1: expected auth-1, got %s", auth1.ID)
 	}
 
-	// Simulate retry - should pick auth-2 (index 0 again, since cursor hasn't advanced)
+	// Simulate retry - should pick auth-1 (cursor should not advance within same request)
 	auth2, err := selector.Pick(ctx, provider, model, opts, auths)
 	if err != nil {
 		t.Fatalf("Pick failed: %v", err)
